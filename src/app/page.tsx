@@ -96,6 +96,8 @@ export default function Home() {
     const [provider, setProvider] = useState("google");
     const [geolocation, setGeolocation] = useState("geomais+sao+jose");
     const [apiResponse, setApiResponse] = useState(null);
+    const [multipleResults, setMultipleResults] = useState([]);
+    const [selectedResultIndex, setSelectedResultIndex] = useState(0);
 
     const fetchGeocodingData = async (provider: string, address: string) => {
         const endpoint = "https://simple-go-server-production.up.railway.app/external/";
@@ -122,18 +124,46 @@ export default function Home() {
         return await response.json();
     };
 
-    const extractCoordinates = (data: any, provider: string) => {
+    const extractCoordinates = (data: any, provider: string, index: number = 0) => {
         switch (provider) {
             case "google":
-                return data?.results[0]?.geometry?.location?.lat + ',' + data?.results[0]?.geometry?.location?.lng;
+                return data?.results[index]?.geometry?.location?.lat + ',' + data?.results[index]?.geometry?.location?.lng;
             case "nominatium":
-                return data[0]?.lat + ',' + data[0]?.lon;
+                return data[index]?.lat + ',' + data[index]?.lon;
             case "geoapify":
-                return data?.features[0]?.geometry?.coordinates[1] + ',' + data?.features[0]?.geometry?.coordinates[0];
+                return data?.features[index]?.geometry?.coordinates[1] + ',' + data?.features[index]?.geometry?.coordinates[0];
             case "maptiler":
-                return data?.features[0]?.geometry?.coordinates[1] + ',' + data?.features[0]?.geometry?.coordinates[0];
+                return data?.features[index]?.geometry?.coordinates[1] + ',' + data?.features[index]?.geometry?.coordinates[0];
             default:
                 return "";
+        }
+    };
+
+    const getResultsArray = (data: any, provider: string) => {
+        switch (provider) {
+            case "google":
+                return data?.results || [];
+            case "nominatium":
+                return Array.isArray(data) ? data : [];
+            case "geoapify":
+            case "maptiler":
+                return data?.features || [];
+            default:
+                return [];
+        }
+    };
+
+    const getAddressFromResult = (result: any, provider: string) => {
+        switch (provider) {
+            case "google":
+                return result?.formatted_address || "Unknown address";
+            case "nominatium":
+                return result?.display_name || "Unknown address";
+            case "geoapify":
+            case "maptiler":
+                return result?.properties?.formatted || result?.properties?.address_line1 || "Unknown address";
+            default:
+                return "Unknown address";
         }
     };
 
@@ -144,12 +174,34 @@ export default function Home() {
         setApiResponse(data);
 
         if (data) {
-            const coordinates = extractCoordinates(data, provider);
+            // Reset selected index for new search
+            setSelectedResultIndex(0);
+
+            // Get results array based on provider
+            const results = getResultsArray(data, provider);
+
+            // Check if there are multiple results
+            if (results.length > 1) {
+                setMultipleResults(results);
+            } else {
+                setMultipleResults([]);
+            }
+
+            // Update map with coordinates of first result
+            const coordinates = extractCoordinates(data, provider, 0);
             setGeolocation(coordinates);
         }
 
         console.log("Address:", address);
         console.log("Provider:", provider);
+    }
+
+    const handleSelectResult = (index: number) => {
+        setSelectedResultIndex(index);
+        if (apiResponse) {
+            const coordinates = extractCoordinates(apiResponse, provider, index);
+            setGeolocation(coordinates);
+        }
     }
 
     return (
@@ -204,6 +256,42 @@ export default function Home() {
                         >
                             Search
                         </button>
+
+                        {multipleResults.length > 1 && (
+                            <div className="mt-4 p-3 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Multiple addresses found. Please select one:
+                                </h3>
+                                <div className="space-y-2">
+                                    {multipleResults.map((result, index) => (
+                                        <div 
+                                            key={index} 
+                                            className={`flex items-start p-2 rounded-md cursor-pointer ${
+                                                selectedResultIndex === index 
+                                                    ? 'bg-blue-100 dark:bg-blue-900' 
+                                                    : 'hover:bg-gray-100 dark:hover:bg-gray-600'
+                                            }`}
+                                            onClick={() => handleSelectResult(index)}
+                                        >
+                                            <input
+                                                type="radio"
+                                                id={`address-${index}`}
+                                                name="address-selection"
+                                                checked={selectedResultIndex === index}
+                                                onChange={() => handleSelectResult(index)}
+                                                className="mt-1 mr-2"
+                                            />
+                                            <label 
+                                                htmlFor={`address-${index}`}
+                                                className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                                            >
+                                                {getAddressFromResult(result, provider)}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </form>
                 </div>
 
