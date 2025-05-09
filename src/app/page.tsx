@@ -2,6 +2,95 @@
 
 import {useState} from "react";
 
+// Component for rendering JSON in a mobile-friendly way
+const JsonView = ({ data }: { data: any }) => {
+    // Add custom styles for different data types and mobile optimization
+    const styles = {
+        string: "text-green-600 dark:text-green-400",
+        number: "text-purple-600 dark:text-purple-400",
+        boolean: "text-orange-600 dark:text-orange-400",
+        null: "text-gray-500 dark:text-gray-400",
+        key: "text-blue-600 dark:text-blue-400 font-medium",
+        index: "text-gray-500 dark:text-gray-400 text-xs mr-1",
+        toggle: "text-gray-700 dark:text-gray-300 mr-1 inline-block min-w-[12px]",
+        preview: "text-xs text-gray-500 dark:text-gray-400 ml-1",
+    };
+    // Function to determine if an item is expandable (object or array)
+    const isExpandable = (item: any) => {
+        return typeof item === 'object' && item !== null && Object.keys(item).length > 0;
+    };
+
+    // Recursive component to render JSON nodes
+    const JsonNode = ({ data, level = 0 }: { data: any, level?: number }) => {
+        const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first two levels
+
+        // Handle primitive values (string, number, boolean, null)
+        if (!isExpandable(data)) {
+            const dataType = data === null ? 'null' : typeof data;
+            return (
+                <span className={styles[dataType]}>
+                    {data === null ? 'null' : 
+                     typeof data === 'string' ? `"${data}"` : 
+                     String(data)}
+                </span>
+            );
+        }
+
+        // Handle objects and arrays
+        const isArray = Array.isArray(data);
+        const items = isArray ? data : Object.keys(data);
+
+        return (
+            <div className="relative">
+                <span 
+                    className="cursor-pointer select-none"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <span className={styles.toggle}>{isExpanded ? '▼' : '►'}</span> {isArray ? '[' : '{'}
+                    {!isExpanded && (
+                        <span className={styles.preview}>
+                            {isArray 
+                                ? `${items.length} items` 
+                                : `${items.length} ${items.length === 1 ? 'key' : 'keys'}`
+                            }
+                        </span>
+                    )}
+                </span>
+
+                {isExpanded && (
+                    <div className="ml-3 md:ml-4 border-l-2 border-gray-300 pl-2 py-0.5">
+                        {isArray ? (
+                            // Render array items
+                            items.map((item, index) => (
+                                <div key={index} className="py-0.5 my-0.5">
+                                    <span className={styles.index}>{index}:</span>
+                                    <JsonNode data={item} level={level + 1} />
+                                </div>
+                            ))
+                        ) : (
+                            // Render object properties
+                            items.map((key) => (
+                                <div key={key} className="py-0.5 my-0.5">
+                                    <span className={styles.key}>{key}:</span>{' '}
+                                    <JsonNode data={data[key]} level={level + 1} />
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                <span>{isArray ? ']' : '}'}</span>
+            </div>
+        );
+    };
+
+    return (
+        <div className="text-sm font-mono break-words touch-manipulation">
+            <JsonNode data={data} />
+        </div>
+    );
+};
+
 export default function Home() {
     const [address, setAddress] = useState("");
     const [provider, setProvider] = useState("google");
@@ -125,11 +214,11 @@ export default function Home() {
                 </div>
 
                 {apiResponse && (
-                    <div className="rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
-                        <h2 className="mb-4 text-xl font-bold text-gray-800 dark:text-white">API Response</h2>
-                        <pre className="overflow-auto rounded bg-gray-100 p-4 dark:bg-gray-700 dark:text-white">
-                            {JSON.stringify(apiResponse, null, 2)}
-                        </pre>
+                    <div className="rounded-lg bg-white p-4 md:p-8 shadow-lg dark:bg-gray-800">
+                        <h2 className="mb-4 text-sm font-bold text-gray-800 dark:text-white">API Response</h2>
+                        <div className="overflow-auto rounded bg-gray-100 p-3 md:p-4 dark:bg-gray-700 dark:text-white max-h-[60vh] md:max-h-[70vh]">
+                            <JsonView data={apiResponse} />
+                        </div>
                     </div>
                 )}
             </main>
