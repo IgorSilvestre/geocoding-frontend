@@ -111,6 +111,9 @@ export default function Home() {
             case "geoapify":
                 url = endpoint + 'geocode-geoapify?address=' + address;
                 break;
+            case "maptiler":
+                url = endpoint + 'geocode-maptiler?address=' + address;
+                break;
             default:
                 return null;
         }
@@ -126,6 +129,8 @@ export default function Home() {
             case "nominatium":
                 return data[0]?.lat + ',' + data[0]?.lon;
             case "geoapify":
+                return data?.features[0]?.geometry?.coordinates[1] + ',' + data?.features[0]?.geometry?.coordinates[0];
+            case "maptiler":
                 return data?.features[0]?.geometry?.coordinates[1] + ',' + data?.features[0]?.geometry?.coordinates[0];
             default:
                 return "";
@@ -189,6 +194,7 @@ export default function Home() {
                                 <option value="google">Google</option>
                                 <option value="nominatium">Self-host</option>
                                 <option value="geoapify">Geoapify</option>
+                                <option value="maptiler">MapTiler</option>
                             </select>
                         </div>
 
@@ -206,7 +212,7 @@ export default function Home() {
                         allowFullScreen
                         referrerPolicy="no-referrer-when-downgrade"
                         src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDr4cY_GUUB4IiK3A_A219AptKOM6Xngrw
-    &q=${geolocation}`}
+    &q=${encodeURI(geolocation)}`}
                         className="w-full h-full rounded-lg shadow-md"
                         style={{border: 0}}
                         loading="lazy"
