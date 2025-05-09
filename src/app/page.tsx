@@ -1,6 +1,12 @@
 "use client";
 
 import {useState} from "react";
+import {translations} from "../translations/pt";
+
+// Translation utility function
+const t = (text: string): string => {
+    return translations[text] || text;
+};
 
 // Component for rendering JSON in a mobile-friendly way
 const JsonView = ({ data }: { data: any }) => {
@@ -50,8 +56,8 @@ const JsonView = ({ data }: { data: any }) => {
                     {!isExpanded && (
                         <span className={styles.preview}>
                             {isArray 
-                                ? `${items.length} items` 
-                                : `${items.length} ${items.length === 1 ? 'key' : 'keys'}`
+                                ? `${items.length} ${t("items")}` 
+                                : `${items.length} ${items.length === 1 ? t("key") : t("keys")}`
                             }
                         </span>
                     )}
@@ -132,7 +138,7 @@ export default function Home() {
             const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(`API error: ${response.status} ${response.statusText}`);
+                throw new Error(`${t("API error:")} ${response.status} ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -145,7 +151,7 @@ export default function Home() {
             return data;
         } catch (error) {
             console.error("Geocoding API error:", error);
-            setApiError(error.message || "Failed to fetch geocoding data");
+            setApiError(error.message || t("Failed to fetch geocoding data"));
             return null;
         }
     };
@@ -182,14 +188,14 @@ export default function Home() {
     const getAddressFromResult = (result: any, provider: string) => {
         switch (provider) {
             case "google":
-                return result?.formatted_address || "Unknown address";
+                return result?.formatted_address || t("Unknown address");
             case "nominatium":
-                return result?.display_name || "Unknown address";
+                return result?.display_name || t("Unknown address");
             case "geoapify":
             case "maptiler":
-                return result?.properties?.formatted || result?.properties?.address_line1 || "Unknown address";
+                return result?.properties?.formatted || result?.properties?.address_line1 || t("Unknown address");
             default:
-                return "Unknown address";
+                return t("Unknown address");
         }
     };
 
@@ -202,12 +208,12 @@ export default function Home() {
 
         // Validate address input
         if (!address.trim()) {
-            setInputError("Please enter an address");
+            setInputError(t("Please enter an address"));
             return;
         }
 
         if (!validateAddress(address)) {
-            setInputError("Address can only contain letters, numbers, commas, and spaces");
+            setInputError(t("Address can only contain letters, numbers, commas, and spaces"));
             return;
         }
 
@@ -232,7 +238,7 @@ export default function Home() {
 
             // Check if we have any results
             if (results.length === 0) {
-                setApiError("No results found for this address");
+                setApiError(t("No results found for this address"));
                 return;
             }
 
@@ -258,7 +264,7 @@ export default function Home() {
             <main className="w-full max-w-4xl space-y-8">
                 <div className="rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
                     <h1 className="mb-6 text-center text-2xl font-bold text-gray-800 dark:text-white">
-                        Geocoding Service
+                        {t("Geocoding Service")}
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -273,7 +279,7 @@ export default function Home() {
                                 htmlFor="address"
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                             >
-                                Address
+                                {t("Address")}
                             </label>
                             <input
                                 id="address"
@@ -284,7 +290,7 @@ export default function Home() {
                                     // Clear input error when user starts typing
                                     if (inputError) setInputError("");
                                 }}
-                                placeholder="Enter an address"
+                                placeholder={t("Enter an address")}
                                 className={`w-full rounded-md border ${inputError ? 'border-red-500' : 'border-gray-300'} px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
                             />
                             {inputError && (
@@ -297,7 +303,7 @@ export default function Home() {
                                 htmlFor="provider"
                                 className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                             >
-                                Provider
+                                {t("Provider")}
                             </label>
                             <select
                                 id="provider"
@@ -309,10 +315,10 @@ export default function Home() {
                                 }}
                                 className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                             >
-                                <option value="google">Google</option>
-                                <option value="nominatium">Self-host</option>
-                                <option value="geoapify">Geoapify</option>
-                                <option value="maptiler">MapTiler</option>
+                                <option value="google">{t("Google")}</option>
+                                <option value="nominatium">{t("Self-host")}</option>
+                                <option value="geoapify">{t("Geoapify")}</option>
+                                <option value="maptiler">{t("MapTiler")}</option>
                             </select>
                         </div>
 
@@ -320,13 +326,13 @@ export default function Home() {
                             type="submit"
                             className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                         >
-                            Search
+                            {t("Search")}
                         </button>
 
                         {multipleResults.length > 1 && (
                             <div className="mt-4 p-3 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Multiple addresses found. Please select one:
+                                    {t("Multiple addresses found. Please select one:")}
                                 </h3>
                                 <div className="space-y-2">
                                     {multipleResults.map((result, index) => (
@@ -375,7 +381,7 @@ export default function Home() {
 
                 {apiResponse && (
                     <div className="rounded-lg bg-white p-4 md:p-8 shadow-lg dark:bg-gray-800">
-                        <h2 className="mb-4 text-sm font-bold text-gray-800 dark:text-white">API Response</h2>
+                        <h2 className="mb-4 text-sm font-bold text-gray-800 dark:text-white">{t("API Response")}</h2>
                         <div className="overflow-auto rounded bg-gray-100 p-3 md:p-4 dark:bg-gray-700 dark:text-white max-h-[60vh] md:max-h-[70vh]">
                             <JsonView data={apiResponse} />
                         </div>
