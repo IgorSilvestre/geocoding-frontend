@@ -98,6 +98,14 @@ export default function Home() {
     const [apiResponse, setApiResponse] = useState(null);
     const [multipleResults, setMultipleResults] = useState([]);
     const [selectedResultIndex, setSelectedResultIndex] = useState(0);
+    const [inputError, setInputError] = useState("");
+    const [apiError, setApiError] = useState("");
+
+    // Validate address input - only allow letters, numbers, and commas
+    const validateAddress = (input: string): boolean => {
+        const regex = /^[a-zA-Z0-9,\s]+$/;
+        return regex.test(input);
+    };
 
     const fetchGeocodingData = async (provider: string, address: string) => {
         const endpoint = "https://simple-go-server-production.up.railway.app/external/";
@@ -120,8 +128,26 @@ export default function Home() {
                 return null;
         }
 
-        const response = await fetch(url);
-        return await response.json();
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            // Check if the API returned an error message
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            return data;
+        } catch (error) {
+            console.error("Geocoding API error:", error);
+            setApiError(error.message || "Failed to fetch geocoding data");
+            return null;
+        }
     };
 
     const extractCoordinates = (data: any, provider: string, index: number = 0) => {
@@ -170,10 +196,27 @@ export default function Home() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const data = await fetchGeocodingData(provider, address);
-        setApiResponse(data);
+        // Clear previous errors
+        setInputError("");
+        setApiError("");
 
+        // Validate address input
+        if (!address.trim()) {
+            setInputError("Please enter an address");
+            return;
+        }
+
+        if (!validateAddress(address)) {
+            setInputError("Address can only contain letters, numbers, commas, and spaces");
+            return;
+        }
+
+        const data = await fetchGeocodingData(provider, address);
+
+        // Only proceed if we have valid data (no API errors)
         if (data) {
+            setApiResponse(data);
+
             // Reset selected index for new search
             setSelectedResultIndex(0);
 
@@ -185,6 +228,12 @@ export default function Home() {
                 setMultipleResults(results);
             } else {
                 setMultipleResults([]);
+            }
+
+            // Check if we have any results
+            if (results.length === 0) {
+                setApiError("No results found for this address");
+                return;
             }
 
             // Update map with coordinates of first result
@@ -213,6 +262,12 @@ export default function Home() {
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {apiError && (
+                            <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                                <p className="text-sm">{apiError}</p>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <label
                                 htmlFor="address"
@@ -224,10 +279,17 @@ export default function Home() {
                                 id="address"
                                 type="text"
                                 value={address}
-                                onChange={(e) => setAddress(e.target.value)}
+                                onChange={(e) => {
+                                    setAddress(e.target.value);
+                                    // Clear input error when user starts typing
+                                    if (inputError) setInputError("");
+                                }}
                                 placeholder="Enter an address"
-                                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                className={`w-full rounded-md border ${inputError ? 'border-red-500' : 'border-gray-300'} px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white`}
                             />
+                            {inputError && (
+                                <p className="mt-1 text-sm text-red-600">{inputError}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -240,7 +302,11 @@ export default function Home() {
                             <select
                                 id="provider"
                                 value={provider}
-                                onChange={(e) => setProvider(e.target.value)}
+                                onChange={(e) => {
+                                    setProvider(e.target.value);
+                                    // Clear API error when provider changes
+                                    if (apiError) setApiError("");
+                                }}
                                 className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                             >
                                 <option value="google">Google</option>
